@@ -1,0 +1,411 @@
+support presents for feilds
+
+// supportFields.js
+export const supportFields = [
+  {
+    id: "borrower-gci",
+    label: "Borrower GCI",
+    type: "TextBox",
+    config: { label: "Borrower GCI", placeholder: "Enter amount", required: true }
+  },
+  {
+    id: "loan-type",
+    label: "Loan Type",
+    type: "Dropdown",
+    config: { label: "Loan Type", options: ["Home Loan", "Car Loan"], required: true }
+  }
+];
+
+
+redux setup-----------////////---------
+
+import { createSlice, nanoid } from "@reduxjs/toolkit";
+import { supportFields } from "./supportFields";
+
+const initialState = {
+  droppedComponents: [],
+  activeComponentId: null
+};
+
+const builderSlice = createSlice({
+  name: "builder",
+  initialState,
+  reducers: {
+    // ---------------- Canvas ----------------
+    addCanvas: {
+      reducer(state, action) {
+        state.droppedComponents.push(action.payload);
+      },
+      prepare(columns = 1) {
+        return {
+          payload: {
+            id: nanoid(),
+            type: "Canvas",
+            config: { columns },
+            children: Array.from({ length: columns }, (_, i) => ({
+              columnIndex: i,
+              components: []
+            }))
+          }
+        };
+      }
+    },
+    updateCanvasConfig(state, action) {
+      const { id, columns } = action.payload;
+      const updateRecursive = (components) => {
+        for (let c of components) {
+          if (c.id === id && c.type === "Canvas") {
+            if (columns > c.config.columns) {
+              for (let i = c.config.columns; i < columns; i++) {
+                c.children.push({ columnIndex: i, components: [] });
+              }
+            } else if (columns < c.config.columns) {
+              c.children = c.children.slice(0, columns);
+            }
+            c.config.columns = columns;
+            return true;
+          }
+          if (c.type === "Canvas") {
+            for (let col of c.children) {
+              if (updateRecursive(col.components)) return true;
+            }
+          }
+          if (c.type === "Accordion") {
+            if (updateRecursive(c.children)) return true;
+          }
+        }
+        return false;
+      };
+      updateRecursive(state.droppedComponents);
+    },
+
+    // ---------------- Accordion ----------------
+    addAccordion: {
+      reducer(state, action) {
+        state.droppedComponents.push(action.payload);
+      },
+      prepare() {
+        return {
+          payload: {
+            id: nanoid(),
+            type: "Accordion",
+            config: { title: "New Section", expanded: true },
+            children: []
+          }
+        };
+      }
+    },
+    updateAccordionConfig(state, action) {
+      const { id, updates } = action.payload;
+      const updateRecursive = (components) => {
+        for (let c of components) {
+          if (c.id === id && c.type === "Accordion") {
+            c.config = { ...c.config, ...updates };
+            return true;
+          }
+          if (c.type === "Canvas") {
+            for (let col of c.children) {
+              if (updateRecursive(col.components)) return true;
+            }
+          }
+          if (c.type === "Accordion") {
+            if (updateRecursive(c.children)) return true;
+          }
+        }
+        return false;
+      };
+      updateRecursive(state.droppedComponents);
+    },
+
+    // ---------------- FieldSelector / Preset ----------------
+    applyPresetToField(state, action) {
+      const { id, presetId } = action.payload;
+      const preset = supportFields.find(f => f.id === presetId);
+      if (!preset) return;
+
+      const updateRecursive = (components) => {
+        for (let c of components) {
+          if (c.id === id) {
+            c.type = preset.type;
+            c.config = { ...preset.config };
+            c.presetId = presetId;
+            return true;
+          }
+          if (c.type === "Canvas") {
+            for (let col of c.children) {
+              if (updateRecursive(col.components)) return true;
+            }
+          }
+          if (c.type === "Accordion") {
+            if (updateRecursive(c.children)) return true;
+          }
+        }
+        return false;
+      };
+      updateRecursive(state.droppedComponents);
+    },
+
+    // ---------------- Table ----------------
+    addTable(state, action) {
+      const { tableId } = action.payload;
+      const tableExists = state.droppedComponents.find(c => c.id === tableId);
+      if (!tableExists) {
+        state.droppedComponents.push({
+          id: tableId || nanoid(),
+          type: "Table",
+          config: { title: "New Table" },
+          boxes: Array.from({ length: 5 }, (_, i) => ({
+            id: nanoid(),
+            label: `Box ${i + 1}`,
+            sampleText: `Sample ${i + 1}`
+          }))
+        });
+      } else {
+        tableExists.boxes.push({
+          id: nanoid(),
+          label: `Box ${tableExists.boxes.length + 1}`,
+          sampleText: `Sample ${tableExists.boxes.length + 1}`
+        });
+      }
+    },
+    updateTableBox(state, action) {
+      const { tableId, boxId, sampleText } = action.payload;
+      const updateRecursive = (components) => {
+        for (let c of components) {
+          if (c.type === "Table" && c.id === tableId) {
+            const box = c.boxes.find(b => b.id === boxId);
+            if (box) box.sampleText = sampleText;
+            return true;
+          }
+          if (c.type === "Canvas") {
+            for (let col of c.children) {
+              if (updateRecursive(col.components)) return true;
+            }
+          }
+          if (c.type === "Accordion") {
+            if (updateRecursive(c.children)) return true;
+          }
+        }
+        return false;
+      };
+      updateRecursive(state.droppedComponents);
+    },
+    reorderTableBoxes(state, action) {
+      const { tableId, fromIndex, toIndex } = action.payload;
+      const updateRecursive = (components) => {
+        for (let c of components) {
+          if (c.type === "Table" && c.id === tableId) {
+            const [moved] = c.boxes.splice(fromIndex, 1);
+            c.boxes.splice(toIndex, 0, moved);
+            return true;
+          }
+          if (c.type === "Canvas") {
+            for (let col of c.children) {
+              if (updateRecursive(col.components)) return true;
+            }
+          }
+          if (c.type === "Accordion") {
+            if (updateRecursive(c.children)) return true;
+          }
+        }
+        return false;
+      };
+      updateRecursive(state.droppedComponents);
+    },
+
+    // ---------------- Active Component ----------------
+    setActiveComponent(state, action) {
+      state.activeComponentId = action.payload;
+    }
+  }
+});
+
+export const {
+  addCanvas,
+  updateCanvasConfig,
+  addAccordion,
+  updateAccordionConfig,
+  applyPresetToField,
+  addTable,
+  updateTableBox,
+  reorderTableBoxes,
+  setActiveComponent
+} = builderSlice.actions;
+
+export default builderSlice.reducer;
+
+
+middle panel//////---------------///////-----////
+const RenderComponent = ({ component, onSelect }) => {
+  const handleClick = () => onSelect(component.id);
+
+  switch (component.type) {
+    case "Canvas":
+      return (
+        <div
+          onClick={handleClick}
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            flexWrap: "nowrap",
+            border: "1px dashed gray",
+            margin: "5px",
+            overflowX: "auto"
+          }}
+        >
+          {component.children.map(col => (
+            <div
+              key={col.columnIndex}
+              style={{
+                flex: 0,
+                minWidth: "150px",
+                border: "1px dashed lightgray",
+                margin: "2px",
+                padding: "5px"
+              }}
+            >
+              {col.components.map(c => <RenderComponent key={c.id} component={c} onSelect={onSelect} />)}
+            </div>
+          ))}
+        </div>
+      );
+
+    case "Accordion":
+      return (
+        <div onClick={handleClick} style={{ border: "1px solid #aaa", margin: "5px" }}>
+          <div style={{ fontWeight: "bold" }}>{component.config.title}</div>
+          <div style={{ paddingLeft: "10px" }}>
+            {component.children.map(c => <RenderComponent key={c.id} component={c} onSelect={onSelect} />)}
+          </div>
+        </div>
+      );
+
+    case "TextBox":
+    case "Dropdown":
+      return <div onClick={handleClick} style={{ border: "1px solid #ccc", margin: "2px", padding: "5px" }}>{component.config.label || component.type}</div>;
+
+    case "FieldSelector":
+      return <div onClick={handleClick} style={{ border: "1px solid #ccc", margin: "2px", padding: "5px" }}>{component.config.label || "Field"}</div>;
+
+    case "Table":
+      return (
+        <div onClick={handleClick} style={{ border: "1px solid #666", margin: "5px", padding: "5px" }}>
+          {component.boxes.map(b => (
+            <div key={b.id} style={{ display: "inline-block", border: "1px dashed #aaa", margin: "2px", padding: "5px" }}>{b.sampleText}</div>
+          ))}
+        </div>
+      );
+
+    default:
+      return null;
+  }
+};
+
+
+
+active compo helper--------/////
+
+export const findActiveComponent = (components, id) => {
+  for (let c of components) {
+    if (c.id === id) return c;
+    if (c.type === "Canvas") {
+      for (let col of c.children) {
+        const found = findActiveComponent(col.components, id);
+        if (found) return found;
+      }
+    }
+    if (c.type === "Accordion") {
+      const found = findActiveComponent(c.children, id);
+      if (found) return found;
+    }
+  }
+  return null;
+};
+
+
+support panel----------   aaa
+
+const SupportPanel = ({ droppedComponents, activeComponentId, dispatch }) => {
+  const activeComponent = findActiveComponent(droppedComponents, activeComponentId);
+  if (!activeComponent) return null;
+
+  switch (activeComponent.type) {
+    case "Canvas":
+      return (
+        <div>
+          <label>Columns:</label>
+          <input
+            type="number"
+            value={activeComponent.config.columns}
+            onChange={(e) => dispatch(updateCanvasConfig({ id: activeComponent.id, columns: +e.target.value }))}
+          />
+        </div>
+      );
+
+    case "Accordion":
+      return (
+        <div>
+          <label>Title:</label>
+          <input
+            value={activeComponent.config.title}
+            onChange={(e) => dispatch(updateAccordionConfig({ id: activeComponent.id, updates: { title: e.target.value } }))}
+          />
+        </div>
+      );
+
+    case "FieldSelector":
+      return (
+        <div>
+          <label>Select Preset:</label>
+          <select
+            value={activeComponent.config.presetId || ""}
+            onChange={(e) => dispatch(applyPresetToField({ id: activeComponent.id, presetId: e.target.value }))}
+          >
+            <option value="">Select...</option>
+            {supportFields.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+          </select>
+        </div>
+      );
+
+    case "Table":
+      return (
+        <div>
+          <label>Shuffle Columns:</label>
+          {activeComponent.boxes.map((b, i) => (
+            <div key={b.id}>
+              {b.label}
+              <input
+                value={b.sampleText}
+                onChange={(e) => dispatch(updateTableBox({ tableId: activeComponent.id, boxId: b.id, sampleText: e.target.value }))}
+              />
+              <button onClick={() => dispatch(reorderTableBoxes({ tableId: activeComponent.id, fromIndex: i, toIndex: i - 1 }))}>↑</button>
+              <button onClick={() => dispatch(reorderTableBoxes({ tableId: activeComponent.id, fromIndex: i, toIndex: i + 1 }))}>↓</button>
+            </div>
+          ))}
+        </div>
+      );
+
+    case "TextBox":
+    case "Dropdown":
+      return (
+        <div>
+          <label>Label:</label>
+          <input
+            value={activeComponent.config.label}
+            onChange={(e) => dispatch(applyPresetToField({ id: activeComponent.id, presetId: null, updates: { label: e.target.value } }))}
+          />
+        </div>
+      );
+
+    default:
+      return null;
+  }
+};
+
+
+
+
+
+
+
+
