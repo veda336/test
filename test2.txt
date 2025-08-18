@@ -1,45 +1,59 @@
 import React from "react";
+import { AccordionComponent, Textbox, Table } from "./components";
 
-// Import your actual UI components
-import Textbox from "./components/Textbox";
-import Table from "./components/Table";
-import AccordionComponent from "./components/AccordionComponent";
-import CanvasComponent from "./components/CanvasComponent";
-
-// Map component types to React components
+// Map type to component
 const componentMap = {
+  Accordion: AccordionComponent,
   Textbox,
   Table,
-  Accordion: AccordionComponent,
-  Canvas: CanvasComponent,
 };
 
 const MiddlePanel = ({ droppedComponents }) => {
-  // Recursive rendering function
+  // Recursive function to render components
   const renderComponent = (component) => {
+    // Canvas handled directly here
+    if (component.type === "Canvas") {
+      return (
+        <div
+          key={component.id}
+          style={{
+            display: "flex",
+            border: "1px solid #333",
+            padding: "8px",
+            margin: "4px 0",
+            gap: "4px",
+            minHeight: "80px",
+          }}
+        >
+          {component.children.map((col) => (
+            <div
+              key={col.columnIndex}
+              style={{
+                flex: 1,
+                border: "1px dotted gray",
+                minHeight: "60px",
+                padding: "4px",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              {col.components.length > 0
+                ? col.components.map((child) => renderComponent(child))
+                : "Drop component here"}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // Render other components via mapping
     const Component = componentMap[component.type];
     if (!Component) return null;
 
     return (
       <Component key={component.id} component={component}>
-        {/* Canvas children: render columns */}
-        {component.type === "Canvas" &&
-          component.children.map((col) => (
-            <div
-              key={col.columnIndex}
-              style={{
-                display: "flex",
-                border: "1px dotted gray",
-                margin: "4px",
-                minHeight: "50px",
-                flex: 1,
-              }}
-            >
-              {col.components.map((child) => renderComponent(child))}
-            </div>
-          ))}
-
-        {/* Accordion children: render nested components */}
+        {/* If Accordion, render children recursively */}
         {component.type === "Accordion" &&
           component.children.map((child) => renderComponent(child))}
       </Component>
