@@ -1,11 +1,12 @@
 import React from "react";
 
-// Component renderer mapping
+// Import your actual UI components
 import Textbox from "./components/Textbox";
 import Table from "./components/Table";
 import AccordionComponent from "./components/AccordionComponent";
 import CanvasComponent from "./components/CanvasComponent";
 
+// Map component types to React components
 const componentMap = {
   Textbox,
   Table,
@@ -13,14 +14,15 @@ const componentMap = {
   Canvas: CanvasComponent,
 };
 
-const MiddlePanel = ({ components }) => {
+const MiddlePanel = ({ droppedComponents }) => {
+  // Recursive rendering function
   const renderComponent = (component) => {
     const Component = componentMap[component.type];
     if (!Component) return null;
 
     return (
       <Component key={component.id} component={component}>
-        {/* Recursive rendering for children */}
+        {/* Canvas children: render columns */}
         {component.type === "Canvas" &&
           component.children.map((col) => (
             <div
@@ -37,13 +39,18 @@ const MiddlePanel = ({ components }) => {
             </div>
           ))}
 
+        {/* Accordion children: render nested components */}
         {component.type === "Accordion" &&
           component.children.map((child) => renderComponent(child))}
       </Component>
     );
   };
 
-  return <div>{components.map((c) => renderComponent(c))}</div>;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      {droppedComponents.map((component) => renderComponent(component))}
+    </div>
+  );
 };
 
 export default MiddlePanel;
