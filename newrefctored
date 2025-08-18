@@ -1,0 +1,167 @@
+import { createSlice, nanoid } from "@reduxjs/toolkit";
+import { supportFields } from "./supportFields";
+
+const initialState = {
+  droppedComponents: [],
+  activeComponentId: null,
+};
+
+const builderSlice = createSlice({
+  name: "builder",
+  initialState,
+  reducers: {
+    // ---------------- Add Component ----------------
+    addComponent: {
+      reducer(state, action) {
+        state.droppedComponents.push(action.payload);
+      },
+      prepare(type, extraConfig = {}) {
+        let payload;
+        switch (type) {
+          case "Canvas":
+            const columns = extraConfig.columns || 1;
+            payload = {
+              id: nanoid(),
+              type: "Canvas",
+              config: { columns },
+              children: Array.from({ length: columns }, (_, i) => ({
+                columnIndex: i,
+                components: [],
+              })),
+            };
+            break;
+
+          case "Accordion":
+            payload = {
+              id: nanoid(),
+              type: "Accordion",
+              config: { title: "New Section", expanded: true },
+              children: [],
+            };
+            break;
+
+          case "Table":
+            payload = {
+              id: nanoid(),
+              type: "Table",
+              config: { title: "New Table" },
+              boxes: Array.from({ length: 5 }, (_, i) => ({
+                id: nanoid(),
+                label: `Box ${i + 1}`,
+                sampleText: `Sample ${i + 1}`,
+              })),
+            };
+            break;
+
+          default:
+            payload = {
+              id: nanoid(),
+              type,
+              config: { ...extraConfig },
+            };
+        }
+        return { payload };
+      },
+    },
+
+    // ---------------- Update Component Config ----------------
+    updateComponentConfig(state, action) {
+      const { id, updates, presetId, columns, tableBoxUpdate } = action.payload;
+
+      const updateRecursive = (components) => {
+        for (let c of components) {
+          if (c.id === id) {
+            // ---- Preset update ----
+            if (presetId) {
+              const preset = supportFields.find((f) => f.id === presetId);
+              if (preset) {
+                c.type = preset.type;
+                c.config = { ...preset.config };
+                c.presetId = presetId;
+              }
+              return true;
+            }
+
+            // ---- Table box update ----
+            if (c.type === "Table" && tableBoxUpdate) {
+              const { boxId, sampleText } = tableBoxUpdate;
+              const box = c.boxes.find((b) => b.id === boxId);
+              if (box) box.sampleText = sampleText;
+              return true;
+            }
+
+            // ---- Canvas column resize ----
+            if (c.type === "Canvas" && typeof columns === "number") {
+              if (columns > c.config.columns) {
+                for (let i = c.config.columns; i < columns; i++) {
+                  c.children.push({ columnIndex: i, components: [] });
+                }
+              } else if (columns < c.config.columns) {
+                c.children = c.children.slice(0, columns);
+              }
+              c.config.columns = columns;
+              return true;
+            }
+
+            // ---- Generic config update ----
+            c.config = { ...c.config, ...updates };
+            return true;
+          }
+
+          // ---- Recursive dive ----
+          if (c.type === "Canvas") {
+            for (let col of c.children) {
+              if (updateRecursive(col.components)) return true;
+            }
+          }
+          if (c.type === "Accordion") {
+            if (updateRecursive(c.children)) return true;
+          }
+        }
+        return false;
+      };
+
+      updateRecursive(state.droppedComponents);
+    },
+
+    // ---------------- Reorder Table Boxes ----------------
+    reorderTableBoxes(state, action) {
+      const { tableId, fromIndex, toIndex } = action.payload;
+
+      const updateRecursive = (components) => {
+        for (let c of components) {
+          if (c.type === "Table" && c.id === tableId) {
+            const [moved] = c.boxes.splice(fromIndex, 1);
+            c.boxes.splice(toIndex, 0, moved);
+            return true;
+          }
+          if (c.type === "Canvas") {
+            for (let col of c.children) {
+              if (updateRecursive(col.components)) return true;
+            }
+          }
+          if (c.type === "Accordion") {
+            if (updateRecursive(c.children)) return true;
+          }
+        }
+        return false;
+      };
+
+      updateRecursive(state.droppedComponents);
+    },
+
+    // ---------------- Active Component ----------------
+    setActiveComponent(state, action) {
+      state.activeComponentId = action.payload;
+    },
+  },
+});
+
+export const {
+  addComponent,
+  updateComponentConfig,
+  reorderTableBoxes,
+  setActiveComponent,
+} = builderSlice.actions;
+
+export default builderSlice.reducer;
