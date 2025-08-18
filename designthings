@@ -1,9 +1,11 @@
 import { createSlice, nanoid } from "@reduxjs/toolkit";
 
+const predefinedTableLabels = ["Name", "Email", "Phone", "Address", "Age"];
+
 const formBuilderSlice = createSlice({
   name: "formBuilder",
   initialState: {
-    droppedComponents: [],  // all root-level Canvas rows
+    droppedComponents: [], // root-level Canvas rows
     activeComponentId: null,
   },
   reducers: {
@@ -12,7 +14,7 @@ const formBuilderSlice = createSlice({
       reducer(state, action) {
         const { parentId, columnIndex, component } = action.payload;
 
-        // If parentId is null, only allow Canvas at root
+        // Root-level: only Canvas allowed
         if (!parentId) {
           if (component.type !== "Canvas") {
             console.warn("Only Canvas can be added at root level");
@@ -22,31 +24,50 @@ const formBuilderSlice = createSlice({
           return;
         }
 
-        // Recursive helper to find the target parent
+        // Recursive helper to find target parent
         const insertRecursive = (components) => {
           for (let c of components) {
             if (c.id === parentId) {
               if (c.type === "Canvas") {
                 const col = c.children.find(col => col.columnIndex === columnIndex);
-                if (col) {
-                  // Enforce one component per column
-                  col.components = [component]; // replace existing if any
+                if (!col) return true;
+
+                // ---------------- Table Logic ----------------
+                if (component.type === "Table") {
+                  const existing = col.components[0];
+                  if (existing && existing.type === "Table") {
+                    // Add 1 more box to existing Table
+                    const nextIndex = existing.boxes.length + 1;
+                    existing.boxes.push({
+                      id: nanoid(),
+                      label: `Box ${nextIndex}`,
+                      sampleText: `Sample ${nextIndex}`
+                    });
+                  } else {
+                    // First-time Table: use component from prepare() (5 predefined boxes)
+                    col.components = [component];
+                  }
+                  return true;
                 }
+
+                // ---------------- Generic Component (Textbox, Dropdown, Accordion, etc.) ----------------
+                col.components = [component]; // enforce one component per column
                 return true;
               }
+
               if (c.type === "Accordion") {
-                // Inside Accordion, allow multiple components in children
-                c.children.push(component);
+                c.children.push(component); // multiple components allowed in Accordion
                 return true;
               }
             }
 
-            // Recursive search
+            // Recurse inside Canvas columns
             if (c.type === "Canvas") {
               for (let col of c.children) {
                 if (insertRecursive(col.components)) return true;
               }
             }
+
             if (c.type === "Accordion") {
               if (insertRecursive(c.children)) return true;
             }
@@ -88,9 +109,9 @@ const formBuilderSlice = createSlice({
               id: nanoid(),
               type: "Table",
               config: { title: "New Table" },
-              boxes: Array.from({ length: 5 }, (_, i) => ({
+              boxes: predefinedTableLabels.map((label, i) => ({
                 id: nanoid(),
-                label: `Box ${i + 1}`,
+                label,
                 sampleText: `Sample ${i + 1}`,
               })),
             };
