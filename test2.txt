@@ -1,49 +1,49 @@
-Here’s the complete revised year-end review with the updated details:
+import React from "react";
 
-Year-End Review: UI Developer
+// Component renderer mapping
+import Textbox from "./components/Textbox";
+import Table from "./components/Table";
+import AccordionComponent from "./components/AccordionComponent";
+import CanvasComponent from "./components/CanvasComponent";
 
-This year has been a transformative journey for me as a UI Developer while working on the Echub project. I joined as a beginner in React and grew into a reliable contributor, delivering significant UI implementations and addressing critical challenges to stabilize the application.
+const componentMap = {
+  Textbox,
+  Table,
+  Accordion: AccordionComponent,
+  Canvas: CanvasComponent,
+};
 
-Key Contributions and Achievements:
+const MiddlePanel = ({ components }) => {
+  const renderComponent = (component) => {
+    const Component = componentMap[component.type];
+    if (!Component) return null;
 
-	1.	UI Development:
-	•	Successfully implemented multiple UI screens, including the Reason Codes Page, Landing Page, Notifications Page, and the Web Portal with seamless functionality.
-	•	Designed and developed reusable components like customized dialog boxes (e.g., deletion, warnings, confirmations), which streamlined the work of the development team across the application.
-	2.	Critical Issue Resolution:
-	•	Worked under the guidance of my lead, Phani, to address a performance crisis (“fire drill mode”) that lasted for a month, contributing to:
-	•	Reducing manual case creation and QA response save times by implementing Python-based database insertions, replacing slower Pega processes.
-	•	Onboarding our application to Venafi to enable HTTPS across all environments (Dev, SIT, UAT, Prod), eliminating 500, 502, and gateway errors.
-	•	Coordinating a team of 50+ testers, ensuring rigorous application testing and reducing errors to zero.
-	•	Took ownership of certain tasks, including implementing backend changes and cert configurations, while ensuring the UI and API were correctly synchronized.
-	•	For these efforts, I received the Silver Award and earned appreciation from our CTO, Aditya Basin.
-	3.	Routing and Performance Improvements:
-	•	Implemented dynamic routing for a new use case (Self-Serve Flood), speeding up development cycles.
-	•	Set up Redux Store, enabling efficient state management and consistent application behavior.
-	•	Developed toast message handling, allowing the team to configure notifications effortlessly across the application.
-	4.	Team Collaboration:
-	•	Actively led a subset of teams, including UI and testing teams, during high-pressure situations, ensuring synchronization between the frontend and backend for accurate and timely delivery.
-	•	Received the Bronze Award for stepping up, taking ownership, and delivering results under tight deadlines.
+    return (
+      <Component key={component.id} component={component}>
+        {/* Recursive rendering for children */}
+        {component.type === "Canvas" &&
+          component.children.map((col) => (
+            <div
+              key={col.columnIndex}
+              style={{
+                display: "flex",
+                border: "1px dotted gray",
+                margin: "4px",
+                minHeight: "50px",
+                flex: 1,
+              }}
+            >
+              {col.components.map((child) => renderComponent(child))}
+            </div>
+          ))}
 
-Skills Acquired and Enhanced:
+        {component.type === "Accordion" &&
+          component.children.map((child) => renderComponent(child))}
+      </Component>
+    );
+  };
 
-	•	Advanced my proficiency in React, Redux, and Python.
-	•	Gained expertise in secure application onboarding with Venafi and HTTPS implementation.
-	•	Improved problem-solving, leadership, and team collaboration skills under high-pressure scenarios.
+  return <div>{components.map((c) => renderComponent(c))}</div>;
+};
 
-Challenges Overcome:
-
-	•	Addressed critical backend and frontend performance issues during multiple fire drill scenarios.
-	•	Successfully balanced development, testing, and coordination efforts under strict deadlines, contributing to the application’s stability and earning client appreciation.
-
-Future Goals:
-
-In the coming year, I aim to:
-	•	Deepen my knowledge in React frameworks, performance optimization, and design systems.
-	•	Contribute to scalable architecture designs and mentor new team members.
-	•	Continue driving innovation and delivering impactful results for the organization.
-
-Closing Statement:
-
-The year has been filled with learning, challenges, and rewarding achievements. I’m proud of the significant impact I made on the Echub project and look forward to continuing my journey of growth and contributing to our team’s success.
-
-This version emphasizes your contributions, recognizes your efforts under your lead’s guidance, and presents a professional, impactful summary of your year. Let me know if you’d like any further tweaks!
+export default MiddlePanel;
