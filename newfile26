@@ -1,0 +1,112 @@
+export const designTabs = [
+  {
+    id: "LANDINGPAGE",
+    label: "Landing Page",
+    type: "landing_page",
+    UIComponents: {},
+    canvas: [
+      {
+        id: "row-1",
+        type: "ROW",
+        columns: [
+          {
+            id: "col-1-0",
+            index: 0,
+            type: "TEXTBOX",
+            label: "Welcome Text"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "RECORD",
+    label: "Record",
+    type: "record",
+    subTabs: [
+      {
+        id: "subtab-1",
+        label: "Web Form",
+        type: "subform",
+        show: true,
+        UIComponents: {},
+        canvas: [
+          {
+            id: "row-2",
+            type: "ROW",
+            columns: [
+              {
+                id: "col-2-0",
+                index: 0,
+                type: "DROPDOWN",
+                label: "Select Country",
+                options: ["USA", "India", "UK"]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        id: "subtab-2",
+        label: "Tabular Form",
+        type: "subform",
+        show: true,
+        UIComponents: {},
+        canvas: []
+      }
+    ]
+  },
+  {
+    id: "CT1",
+    label: "Case Type 1",
+    type: "case_type",
+    subTabs: [
+      {
+        id: "ct1-subtab-1",
+        label: "Web Form 1",
+        type: "subform",
+        show: true,
+        UIComponents: {},
+        canvas: []
+      },
+      {
+        id: "ct1-subtab-2",
+        label: "Web Form 2",
+        type: "subform",
+        show: true,
+        UIComponents: {},
+        canvas: []
+      },
+      {
+        id: "ct1-subtab-3",
+        label: "Case Details",
+        type: "subform",
+        show: true,
+        UIComponents: {},
+        canvas: []
+      },
+      {
+        id: "ct1-subtab-4",
+        label: "Manual Case Creation",
+        type: "subform",
+        show: true,
+        UIComponents: {},
+        canvas: []
+      }
+    ]
+  },
+  {
+    id: "TASKS",
+    label: "Tasks",
+    type: "tasks",
+    UIComponents: {},
+    canvas: []
+  },
+  {
+    id: "APPROVALS",
+    label: "Approvals",
+    type: "approvals",
+    UIComponents: {},
+    canvas: []
+  }
+];
