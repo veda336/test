@@ -1,0 +1,48 @@
+function deleteFromCanvas(canvas, { layoutId, rowId, columnId = null }) {
+  let deletedItem = null;
+
+  const updatedCanvas = canvas.map(layout => {
+    if (layout.layoutId !== layoutId) return layout;
+
+    return {
+      ...layout,
+      rows: deleteFromRows(layout.rows, rowId, columnId)
+    };
+  });
+
+  function deleteFromRows(rows, rowId, columnId) {
+    return rows
+      .map(row => {
+        // Delete row itself
+        if (row.rowId === rowId && !columnId) {
+          deletedItem = row;
+          return null; // remove row
+        }
+
+        // Delete column inside this row
+        if (row.rowId === rowId && columnId) {
+          const newCols = row.columns.filter(col => {
+            if (col.id === columnId) {
+              deletedItem = col;
+              return false;
+            }
+            return true;
+          });
+          return { ...row, columns: newCols };
+        }
+
+        // Otherwise recurse inside columns
+        const newCols = row.columns.map(col => {
+          if (col.rows) {
+            return { ...col, rows: deleteFromRows(col.rows, rowId, columnId) };
+          }
+          return col;
+        });
+
+        return { ...row, columns: newCols };
+      })
+      .filter(Boolean); // remove nulls
+  }
+
+  return { updatedCanvas, deletedItem };
+}
